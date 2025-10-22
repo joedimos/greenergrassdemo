@@ -1,21 +1,35 @@
-from langchain.embeddings import OpenAIEmbeddings
-from qdrant_client import QdrantClient
-from langchain.vectorstores import Qdrant
-from langchain.llms import OpenAI
+from langchain_openai import OpenAIEmbeddings, OpenAI
+from langchain_qdrant import QdrantVectorStore
 from langchain.chains import RetrievalQA
 from ..config import settings
-# Simple builder for demo; replace OpenAI with your preferred LLM
+
+
 def build_rag():
-# Ensure OPENAI_API_KEY is available in environment (langchain/OpenAI
-will pick it up)
-embeddings = OpenAIEmbeddings()
-# qdrant client is optional; `Qdrant` vectorstore wrapper will connect
-via URL
-qdrant = Qdrant(url=settings.qdrant_url, collection_name="documents",
-prefer_grpc=False, embeddings=embeddings)
-retriever = qdrant.as_retriever(search_kwargs={"k": 4})
-llm = OpenAI(temperature=0)
-qa = RetrievalQA.from_chain_type(llm=llm, retriever=retriever)
-return qa
+    # Initialize embeddings with API key
+    embeddings = OpenAIEmbeddings(api_key=settings.openai_api_key)
+    
+    # Connect to Qdrant vector store
+    qdrant = QdrantVectorStore.from_existing_collection(
+        embedding=embeddings,
+        url=settings.qdrant_url,
+        collection_name="documents",
+        prefer_grpc=False
+    )
+    
+    retriever = qdrant.as_retriever(search_kwargs={"k": 4})
+    
+    # Initialize LLM
+    llm = OpenAI(temperature=0, api_key=settings.openai_api_key)
+    
+    # Create QA chain
+    qa = RetrievalQA.from_chain_type(
+        llm=llm,
+        retriever=retriever,
+        return_source_documents=True  # Include sources in response
+    )
+    
+    return qa
+
 def answer_query(qa_chain, question: str) -> str:
-return qa_chain.run(question)
+    result = qa_chain.invoke({"query": question})
+    return result["result"]
