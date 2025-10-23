@@ -3,9 +3,9 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 from typing import Optional, Dict, Any
 from functools import lru_cache
-from ..db import get_db
-from ..models import Lead, AuditLog
-from ..agents.rag_agent import build_rag, answer_query
+from .db import get_db
+from .models import Lead, AuditLog
+from .agents.rag_agent import build_rag, answer_query
 import json
 
 router = APIRouter()
